@@ -48,6 +48,41 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+async function safeFetchJson<T = any>(url: string): Promise<T> {
+  const response = await fetch(url);
+  const contentType = response.headers.get('content-type') || '';
+
+  if (!response.ok) {
+    let errorDetail = '';
+    if (contentType.includes('application/json')) {
+      try {
+        const errorJson = await response.json();
+        errorDetail = errorJson.error || errorJson.message || '';
+      } catch {
+        // ignore json parse error
+      }
+    } else {
+      const errorText = await response.text();
+      if (errorText.includes('The page could not be found') || response.status === 404) {
+        errorDetail = 'API route not found (404). If running on Vercel, please make sure the project was redeployed with the backend API functions and that YOUTUBE_API_KEY is configured in Vercel Environment Variables.';
+      } else if (errorText) {
+        errorDetail = errorText.slice(0, 160);
+      }
+    }
+    throw new Error(errorDetail || `Request failed with status ${response.status} (${response.statusText})`);
+  }
+
+  if (!contentType.includes('application/json')) {
+    const errorText = await response.text();
+    if (errorText.includes('The page could not be found')) {
+      throw new Error('API route not found. If deployed on Vercel, please ensure the api functions are deployed and YOUTUBE_API_KEY is configured.');
+    }
+    throw new Error(`Expected JSON response, but server returned: ${errorText.slice(0, 100)}`);
+  }
+
+  return response.json();
+}
+
 interface ChannelData {
   channel: {
     id: string;
@@ -263,10 +298,7 @@ export default function App() {
         if ('handle' in params) queryParams.append('handle', params.handle);
         if ('channelId' in params) queryParams.append('channelId', params.channelId);
 
-        const response = await fetch(`/api/youtube/channel?${queryParams.toString()}`);
-        const result = await response.json();
-
-        if (!response.ok) throw new Error(result.error || 'Failed to fetch channel data');
+        const result = await safeFetchJson(`/api/youtube/channel?${queryParams.toString()}`);
 
         setData(result);
         const [recs, analysis, keywordEngine] = await Promise.all([
@@ -278,10 +310,7 @@ export default function App() {
         setDescAnalysis(analysis);
         setKeywordEngineData(keywordEngine);
       } else {
-        const response = await fetch(`/api/youtube/video?videoId=${(params as any).videoId}`);
-        const result = await response.json();
-
-        if (!response.ok) throw new Error(result.error || 'Failed to fetch video data');
+        const result = await safeFetchJson(`/api/youtube/video?videoId=${(params as any).videoId}`);
 
         setVideoData(result);
       }
