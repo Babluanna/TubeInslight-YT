@@ -1,0 +1,6 @@
+{
+  "name": "TubeInsight - YouTube Channel Analyzer",
+  "description": "Analyze YouTube channels to discover keywords, tags, and optimization strategies to help you grow your own channel.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
