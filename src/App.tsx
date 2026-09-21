@@ -65,6 +65,8 @@ async function safeFetchJson<T = any>(url: string): Promise<T> {
       const errorText = await response.text();
       if (errorText.includes('The page could not be found') || response.status === 404) {
         errorDetail = 'API route not found (404). If running on Vercel, please make sure the project was redeployed with the backend API functions and that YOUTUBE_API_KEY is configured in Vercel Environment Variables.';
+      } else if (errorText.includes('FUNCTION_INVOCATION_FAILED')) {
+        errorDetail = 'Vercel Serverless Function Invocation Failed. Please make sure YOUTUBE_API_KEY is added to Vercel Project Settings > Environment Variables, and redeploy.';
       } else if (errorText) {
         errorDetail = errorText.slice(0, 160);
       }
